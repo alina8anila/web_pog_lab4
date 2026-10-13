@@ -1,115 +1,339 @@
-# web-programming-2026-template
+# BoardGame Platform
 
-A reusable Django project with no bundled application, SQLite, and Django's
-standard admin, authentication, sessions, messages, and staticfiles support.
+## Опис проєкту
+**BoardGame Hub** — це вебплатформа для любителів настільних ігор, яка об'єднує каталог ігор, відгуки та можливість оренди ігор додому або бронювання ігрових сесій у локальних хабах та клубах настільних ігор.
 
-## Local setup
-
-Requires the latest patch release of Python 3.12, 3.13, or 3.14. Run these commands from the project directory containing
-`manage.py`.
-
-1. Create and activate a virtual environment:
-
-   ```bash
-   python -m venv .venv
-   
-   # for linux/macos
-   source .venv/bin/activate
-   # for Windows:
-   .venv\Scripts\activate
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   python -m pip install -r requirements-dev.txt
-   ```
+Застосунок дозволяє користувачам шукати ігри за різними параметрами (кількість гравців, тривалість, складність), читати відгуки, переглядати сторінки жанрів і хабів. Авторизовані користувачі можуть залишати відгуки, додавати ігри до кошика оренди та створювати замовлення на бронювання.
 
 
-3. Apply migrations to create the local SQLite database:
+## REST API Endpoints
 
-   ```bash
-   python manage.py migrate
-   ```
+Усі дані передаються у форматі JSON.
 
-4. Start the development server:
+### 1. Настільні ігри (Games)
+* **`GET /api/v1/games`**
+  * **Використання:** Отримання переліку ігор із фільтрацією, пошуком та сортуванням.
+  * **Request method:** `GET`
+  * **Query parameters:**
+    * `search` (string) — пошук за назвою
+    * `hub_id` (integer) — фільтр за хабом
+    * `genre_id` (integer) — фільтр за жанром
+    * `min_players` (integer) — мінімальна кількість гравців
+    * `complexity` (string) — складність (`Easy`, `Medium`, `Hard`)
+    * `sort` (string) — сортування (`price_asc`, `price_desc`, `rating_desc`, `rating_asc`, `popularity`)
+  * **Request body:** немає
+  * **Response status:** `200 OK`
+  * **Response body:**
+    ```json
+    {
+      "count": 12,
+      "results": [
+        {
+          "id": 1,
+          "title": "Catan",
+          "rental_price_per_day": 150.0,
+          "rating": 4.8,
+          "min_players": 3,
+          "max_players": 4,
+          "complexity": "Medium",
+          "hub": { "id": 10, "name": "Dice & Roll Kyiv" }
+        }
+      ]
+    }
+    ```
 
-   ```bash
-   python manage.py runserver
-   ```
+* **`GET /api/v1/games/{id}`**
+  * **Використання:** Отримання детальної інформації про конкретну гру.
+  * **Request method:** `GET`
+  * **Request body:** немає
+  * **Response status:** `200 OK` / `404 Not Found`
+  * **Response body:**
+    ```json
+    {
+      "id": 1,
+      "title": "Catan",
+      "description": "Класична містобудівна стратегія про освоєння острова...",
+      "rental_price_per_day": 150.0,
+      "play_time_mins": 90,
+      "min_players": 3,
+      "max_players": 4,
+      "complexity": "Medium",
+      "rating": 4.8,
+      "hub": { "id": 10, "name": "Dice & Roll Kyiv" },
+      "genres": [{ "id": 5, "name": "Стратегії" }]
+    }
+    ```
 
-## Endpoints
+* **`POST /api/v1/games`**
+  * **Використання:** Додавання нової гри в каталог (для адміністраторів/хабів).
+  * **Request method:** `POST`
+  * **Request body:**
+    ```json
+    {
+      "title": "Catan",
+      "description": "Класична містобудівна стратегія...",
+      "rental_price_per_day": 150.0,
+      "play_time_mins": 90,
+      "min_players": 3,
+      "max_players": 4,
+      "complexity": "Medium",
+      "hub_id": 10,
+      "genre_ids": [5]
+    }
+    ```
+  * **Response status:** `201 Created`
+  * **Response body:**
+    ```json
+    {
+      "id": 1,
+      "title": "Catan",
+      "status": "created"
+    }
+    ```
 
-With the server running at `http://127.0.0.1:8000`:
+* **`PUT /api/v1/games/{id}`**
+  * **Використання:** Повне оновлення даних гри.
+  * **Request method:** `PUT`
+  * **Request body:**
+    ```json
+    {
+      "title": "Catan (Updated)",
+      "description": "Оновлений опис...",
+      "rental_price_per_day": 160.0,
+      "play_time_mins": 90,
+      "min_players": 3,
+      "max_players": 4,
+      "complexity": "Medium",
+      "hub_id": 10,
+      "genre_ids": [5]
+    }
+    ```
+  * **Response status:** `200 OK`
 
-| URL | Behavior |
-| --- | --- |
-| http://127.0.0.1:8000/ | No application homepage; may show Django's development welcome page while `DEBUG = True` |
-| http://127.0.0.1:8000/admin/ | Django admin, available after applying migrations |
+* **`DELETE /api/v1/games/{id}`**
+  * **Використання:** Видалення гри з каталогу.
+  * **Request method:** `DELETE`
+  * **Request body:** немає
+  * **Response status:** `204 No Content`
 
-With `DEBUG = False`, unmatched URLs such as `/` return HTTP 404.
+---
 
-To create an account for admin login, run this after applying migrations:
+### 2. Жанри та Категорії (Genres)
+* **`GET /api/v1/genres`**
+  * **Використання:** Отримання списку всіх жанрів.
+  * **Request method:** `GET`
+  * **Request body:** немає
+  * **Response status:** `200 OK`
+  * **Response body:**
+    ```json
+    [
+      { "id": 5, "name": "Стратегії", "description": "Ігри на планування та розвиток" },
+      { "id": 6, "name": "Кооперативні", "description": "Командна гра проти ігрового поля" }
+    ]
+    ```
 
-```bash
-python manage.py createsuperuser
-```
+* **`GET /api/v1/genres/{id}/games`**
+  * **Використання:** Отримання всіх ігор обраного жанру.
+  * **Request method:** `GET`
+  * **Request body:** немає
+  * **Response status:** `200 OK`
+  * **Response body:**
+    ```json
+    {
+      "genre_id": 5,
+      "genre_name": "Стратегії",
+      "games": [
+        { "id": 1, "title": "Catan", "rating": 4.8 }
+      ]
+    }
+    ```
 
-## Add your first application
+---
 
-1. Create an app from the directory containing `manage.py` (replace `myapp`
-   with your application name):
+### 3. Ігрові Хаби та Клуби (Hubs)
+* **`GET /api/v1/hubs`**
+  * **Використання:** Отримання списку локальних хабів.
+  * **Request method:** `GET`
+  * **Request body:** немає
+  * **Response status:** `200 OK`
+  * **Response body:**
+    ```json
+    [
+      { "id": 10, "name": "Dice & Roll Kyiv", "address": "вул. Хрещатик, 1", "phone": "+380441234567" }
+    ]
+    ```
 
-   ```bash
-   python manage.py startapp myapp
-   ```
+* **`GET /api/v1/hubs/{id}/games`**
+  * **Використання:** Отримання всіх ігор, наявних у конкретному хабі.
+  * **Request method:** `GET`
+  * **Request body:** немає
+  * **Response status:** `200 OK`
+  * **Response body:**
+    ```json
+    {
+      "hub_id": 10,
+      "hub_name": "Dice & Roll Kyiv",
+      "games": [
+        { "id": 1, "title": "Catan", "rental_price_per_day": 150.0 }
+      ]
+    }
+    ```
 
-2. Add its generated configuration class, `myapp.apps.MyappConfig`, to
-   `INSTALLED_APPS` in `config/settings.py`.
-3. Define your views and create `myapp/urls.py` with their URL patterns.
-4. Register that URLconf in `config/urls.py` using `path()` and `include()`,
-   choosing a URL prefix for the app and retaining the admin route.
+---
 
-See the official Django 6.1 tutorial for
-[views and URL registration](https://docs.djangoproject.com/en/6.1/intro/tutorial01/)
-and [app registration and models](https://docs.djangoproject.com/en/6.1/intro/tutorial02/).
+### 4. Відгуки (Reviews)
+* **`GET /api/v1/games/{id}/reviews`**
+  * **Використання:** Перегляд усіх відгуків для конкретної гри.
+  * **Request method:** `GET`
+  * **Request body:** немає
+  * **Response status:** `200 OK`
+  * **Response body:**
+    ```json
+    [
+      {
+        "id": 101,
+        "user_name": "Олексій",
+        "rating": 5,
+        "comment": "Чудова гра для компанії!",
+        "created_at": "2026-10-10T12:00:00Z"
+      }
+    ]
+    ```
 
-## Git attributes
+* **`POST /api/v1/games/{id}/reviews`**
+  * **Використання:** Додавання відгуку та оцінки авторизованим користувачем.
+  * **Request method:** `POST`
+  * **Request body:**
+    ```json
+    {
+      "rating": 5,
+      "comment": "Чудова гра для компанії!"
+    }
+    ```
+  * **Response status:** `201 Created`
 
-Git detects text files automatically and normalizes them to LF. Checkouts use
-LF on Linux and Windows, while `.bat` and `.cmd` files use CRLF. Binary files
-are auto-detected and left unchanged, helping avoid newline-only diffs.
+---
 
+### 5. Кошик та Замовлення (Cart & Orders)
+* **`GET /api/v1/cart`**
+  * **Використання:** Перегляд поточного кошика оренди користувача.
+  * **Request method:** `GET`
+  * **Request body:** немає
+  * **Response status:** `200 OK`
+  * **Response body:**
+    ```json
+    {
+      "items": [
+        {
+          "cart_item_id": 1,
+          "game": { "id": 1, "title": "Catan", "rental_price_per_day": 150.0 },
+          "rental_days": 3,
+          "item_total": 450.0
+        }
+      ],
+      "total_price": 450.0
+    }
+    ```
 
-## Code style and submission verification
+* **`POST /api/v1/cart/items`**
+  * **Використання:** Додавання гри до кошика.
+  * **Request method:** `POST`
+  * **Request body:**
+    ```json
+    {
+      "game_id": 1,
+      "rental_days": 3
+    }
+    ```
+  * **Response status:** `201 Created`
 
-All submissions are required to adhere to PEP-8, Django best practices, and standard HTML/CSS/JS formatting. A deterministic cross-platform utility is provided to help you check and format your code.
+* **`DELETE /api/v1/cart/items/{id}`**
+  * **Використання:** Видалення товару з кошика.
+  * **Request method:** `DELETE`
+  * **Request body:** немає
+  * **Response status:** `204 No Content`
 
-### 1. Verification (Check Mode)
-Before submitting, verify that all files adhere to the required standards:
+* **`POST /api/v1/orders`**
+  * **Використання:** Оформлення замовлення/оренди (конвертує всі товари з кошика в замовлення).
+  * **Request method:** `POST`
+  * **Request body:** немає *(TODO: за потреби додати поле для коментаря або адреси доставки)*
+  * **Response status:** `201 Created`
+  * **Response body:**
+    ```json
+    {
+      "order_id": 101,
+      "status": "confirmed",
+      "total_price": 450.0,
+      "created_at": "2026-10-13T15:00:00Z"
+    }
+    ```
 
-```bash
-python check_submission.py
-```
+* **`GET /api/v1/orders`**
+  * **Використання:** Перегляд історії замовлень поточного користувача.
+  * **Request method:** `GET`
+  * **Request body:** немає
+  * **Response status:** `200 OK`
+  * **Response body:**
+    ```json
+    [
+      {
+        "order_id": 101,
+        "status": "confirmed",
+        "total_price": 450.0,
+        "created_at": "2026-10-13T15:00:00Z",
+        "items": [
+          { "game_title": "Catan", "rental_days": 3, "price_per_day": 150.0 }
+        ]
+      }
+    ]
+    ```
 
-If all checks pass, you are ready to submit! If any checks fail, review the error output or run the auto-formatter below.
+---
 
-### 2. Auto-Formatting
-To automatically format Python files, fix safe PEP-8 rules, format Django HTML templates, and format CSS/JS static files:
+### 6. Авторизація та Профіль (Auth & Profile - TBD)
+* **`POST /api/v1/auth/register`**
+  * **Використання:** Реєстрація нового користувача.
+  * **Request method:** `POST`
+  * **Request body:**
+    ```json
+    {
+      "email": "user@example.com",
+      "password": "strongpassword123",
+      "full_name": "Іван Іванов"
+    }
+    ```
+  * **Response status:** `201 Created`
 
-```bash
-python check_submission.py --format
-```
+* **`POST /api/v1/auth/login`** 
+  * **Використання:** Вхід користувача та отримання токена/сесії.
+  * **Request method:** `POST`
+  * **Request body:**
+    ```json
+    {
+      "email": "user@example.com",
+      "password": "strongpassword123"
+    }
+    ```
+  * **Response status:** `200 OK`
 
-### 3. PyCharm Integration
-If you use PyCharm:
-- **One-Click Run:** In the top-right toolbar run configurations dropdown, select **"Verify Submission"** or **"Format Project"** and click the green **Play** button.
+* **`GET /api/v1/users/me`**
+  * **Використання:** Отримання даних профілю поточного користувача.
+  * **Request method:** `GET`
+  * **Response status:** `200 OK`
 
-## Development only
+---
 
-The included settings use `DEBUG = True`, a development secret key, and a local
-SQLite database. The default mailer uses the console backend: email is printed
-to the process's console instead of being delivered.
+## Схема бази даних (Database Schema)
 
-This configuration and Django's development server are not suitable for
-production deployment.
+![Database Schema](./db_schema.png)
+
+### Опис таблиць та зв'язків:
+1. **`Users`**: `id`, `email`, `password_hash`, `full_name`, `created_at`
+2. **`Hubs`**: `id`, `name`, `address`, `phone`, `description`
+3. **`Genres`**: `id`, `name`, `description`
+4. **`Games`**: `id`, `title`, `description`, `rental_price_per_day`, `play_time_mins`, `min_players`, `max_players`, `complexity`, `hub_id` *(FK -> Hubs)*
+5. **`GameGenres`**: `game_id` *(FK -> Games)*, `genre_id` *(FK -> Genres)* — *(зв'язок M:N)*
+6. **`Reviews`**: `id`, `user_id` *(FK -> Users)*, `game_id` *(FK -> Games)*, `rating`, `comment`, `created_at`
+7. **`CartItems`**: `id`, `user_id` *(FK -> Users)*, `game_id` *(FK -> Games)*, `rental_days`
+8. **`Orders`**: `id`, `user_id` *(FK -> Users)*, `total_price`, `status`, `created_at`
+9. **`OrderItems`**: `id`, `order_id` *(FK -> Orders)*, `game_id` *(FK -> Games)*, `rental_days`, `price_per_day`
