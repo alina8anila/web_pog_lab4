@@ -53,6 +53,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+REST_FRAMEWORK = {                                   # глобальні налаштування DRF
+    "EXCEPTION_HANDLER": "catalog.exceptions.custom_exception_handler",
+}
+
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
@@ -106,7 +110,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "uk"
 
 TIME_ZONE = "UTC"
 
