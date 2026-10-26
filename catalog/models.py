@@ -34,6 +34,7 @@ class Game(models.Model):
     complexity = models.CharField(max_length=10, choices=Complexity.choices)
     hub = models.ForeignKey(Hub, on_delete=models.PROTECT, related_name="games")
     genres = models.ManyToManyField(Genre, related_name="games", blank=True)
+    rating = models.DecimalField(max_digits=3, decimal_places=1, default=0)
 
     def __str__(self):
         return self.title
