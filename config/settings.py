@@ -60,6 +60,7 @@ CORS_ALLOWED_ORIGINS = [
 
 REST_FRAMEWORK = {                                   # глобальні налаштування DRF
     "EXCEPTION_HANDLER": "catalog.exceptions.custom_exception_handler",
+    "COERCE_DECIMAL_TO_STRING": False,
 }
 
 ROOT_URLCONF = "config.urls"
