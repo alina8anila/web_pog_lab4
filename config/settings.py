@@ -53,6 +53,11 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+]
+
 REST_FRAMEWORK = {                                   # глобальні налаштування DRF
     "EXCEPTION_HANDLER": "catalog.exceptions.custom_exception_handler",
 }
