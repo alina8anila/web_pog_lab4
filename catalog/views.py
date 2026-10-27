@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from catalog.exceptions import Conflict
-from catalog.models import Hub
-from catalog.serializers import HubSerializer
+from catalog.models import Genre, Hub
+from catalog.serializers import GenreSerializer, HubSerializer
 
 
 class HubListCreateView(APIView):
@@ -57,6 +57,57 @@ class HubGamesView(APIView):
                         "title": game.title,
                         "rental_price_per_day": game.rental_price_per_day,
                     }
+                    for game in games
+                ],
+            }
+        )
+        
+        
+class GenreListCreateView(APIView):
+    def get(self, request):
+        genres = Genre.objects.all().order_by("id")
+        return Response(GenreSerializer(genres, many=True).data)
+
+    def post(self, request):
+        serializer = GenreSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        genre = serializer.save()
+        return Response(GenreSerializer(genre).data, status=status.HTTP_201_CREATED)
+
+
+class GenreDetailView(APIView):
+    def get(self, request, pk):
+        genre = get_object_or_404(Genre, pk=pk)
+        return Response(GenreSerializer(genre).data)
+
+    def put(self, request, pk):
+        genre = get_object_or_404(Genre, pk=pk)
+        serializer = GenreSerializer(genre, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, pk):
+        genre = get_object_or_404(Genre, pk=pk)
+        games_count = genre.games.count()
+        if games_count:
+            raise Conflict(
+                f"Неможливо видалити жанр, оскільки за ним закріплено {games_count} ігор."
+            )
+        genre.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class GenreGamesView(APIView):
+    def get(self, request, pk):
+        genre = get_object_or_404(Genre, pk=pk)
+        games = genre.games.all().order_by("id")
+        return Response(
+            {
+                "genre_id": genre.id,
+                "genre_name": genre.name,
+                "games": [
+                    {"id": game.id, "title": game.title, "rating": game.rating}
                     for game in games
                 ],
             }
