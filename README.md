@@ -132,6 +132,26 @@
     ]
     ```
 
+* **`POST /api/v1/genres`**
+  * **Використання:** Створення нового жанру.
+  * **Request method:** `POST`
+  * **Request body:**
+    ```json
+    {
+      "name": "Стратегії",
+      "description": "Ігри на планування та розвиток"
+    }
+    ```
+  * **Response status:** `201 Created`
+  * **Response body:**
+    ```json
+    {
+      "id": 5,
+      "name": "Стратегії",
+      "description": "Ігри на планування та розвиток"
+    }
+    ```
+
 * **`GET /api/v1/genres/{id}/games`**
   * **Використання:** Отримання всіх ігор обраного жанру.
   * **Request method:** `GET`
@@ -161,6 +181,30 @@
     [
       { "id": 10, "name": "Dice & Roll Kyiv", "address": "вул. Хрещатик, 1", "phone": "+380441234567" }
     ]
+    ```
+
+* **`POST /api/v1/hubs`**
+  * **Використання:** Створення нового хабу.
+  * **Request method:** `POST`
+  * **Request body:**
+    ```json
+    {
+      "name": "Dice & Roll Kyiv",
+      "address": "вул. Хрещатик, 1",
+      "phone": "+380441234567",
+      "description": "Хаб у центрі Києва"
+    }
+    ```
+  * **Response status:** `201 Created`
+  * **Response body:**
+    ```json
+    {
+      "id": 10,
+      "name": "Dice & Roll Kyiv",
+      "address": "вул. Хрещатик, 1",
+      "phone": "+380441234567",
+      "description": "Хаб у центрі Києва"
+    }
     ```
 
 * **`GET /api/v1/hubs/{id}/games`**
