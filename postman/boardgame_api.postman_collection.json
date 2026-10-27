@@ -1,0 +1,1442 @@
+{
+  "info": {
+    "name": "BoardGame Hub API",
+    "description": "Колекція для REST API BoardGame Hub (Django + DRF).\n\nПеред запуском: python3 manage.py migrate && python3 manage.py runserver.\nSeed-дані створюються міграцією 0003_add_data: 2 хаби, 3 жанри, 5 ігор.\nЗапускати через Collection Runner у порядку папок.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "seed_hub_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "seed_genre_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "seed_game_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "created_game_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "created_genre_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "created_hub_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. Games — читання",
+      "description": "",
+      "item": [
+        {
+          "name": "List games",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games"
+              ]
+            },
+            "description": "Перелік ігор із пагінаційним форматом {count, results}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"count + results\", () => {",
+                  "  pm.expect(body).to.have.all.keys(\"count\", \"results\");",
+                  "  pm.expect(body.count).to.be.at.least(5);",
+                  "  pm.expect(body.results).to.be.an(\"array\").that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.test(\"decimals are numbers\", () => {",
+                  "  const game = body.results[0];",
+                  "  pm.expect(game.rating).to.be.a(\"number\");",
+                  "  pm.expect(game.rental_price_per_day).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List games — filters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games?search=Catan&hub_id={{seed_hub_id}}&genre_id={{seed_genre_id}}&min_players=3&complexity=Medium&sort=price_asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Catan"
+                },
+                {
+                  "key": "hub_id",
+                  "value": "{{seed_hub_id}}"
+                },
+                {
+                  "key": "genre_id",
+                  "value": "{{seed_genre_id}}"
+                },
+                {
+                  "key": "min_players",
+                  "value": "3"
+                },
+                {
+                  "key": "complexity",
+                  "value": "Medium"
+                },
+                {
+                  "key": "sort",
+                  "value": "price_asc"
+                }
+              ]
+            },
+            "description": "Перевірка search + hub_id + min_players + complexity + sort."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"filtered results\", () => {",
+                  "  pm.expect(body.results).to.be.an(\"array\").that.is.not.empty;",
+                  "  body.results.forEach((game) => {",
+                  "    pm.expect(game.title.toLowerCase()).to.include(\"catan\");",
+                  "    pm.expect(game.min_players).to.be.at.most(3);",
+                  "    pm.expect(game.max_players).to.be.at.least(3);",
+                  "    pm.expect(game.complexity).to.eql(\"Medium\");",
+                  "    pm.expect(game.hub.id).to.eql(Number(pm.collectionVariables.get(\"seed_hub_id\")));",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List games — sort price_asc",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games?sort=price_asc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games"
+              ],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "price_asc"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const prices = pm.response.json().results.map((game) => game.rental_price_per_day);",
+                  "",
+                  "pm.test(\"price ascending\", () => {",
+                  "  pm.expect(prices).to.eql([...prices].sort((a, b) => a - b));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List games — sort popularity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games?sort=popularity",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games"
+              ],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "popularity"
+                }
+              ]
+            },
+            "description": "popularity реалізовано як fallback на -rating."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const ratings = pm.response.json().results.map((game) => game.rating);",
+                  "",
+                  "pm.test(\"rating descending\", () => {",
+                  "  pm.expect(ratings).to.eql([...ratings].sort((a, b) => b - a));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Game detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games/{{seed_game_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games",
+                "{{seed_game_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"detail fields\", () => {",
+                  "  pm.expect(body).to.include.keys(\"id\", \"title\", \"description\", \"hub\", \"genres\");",
+                  "  pm.expect(body.hub).to.have.all.keys(\"id\", \"name\");",
+                  "  pm.expect(body.genres).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Game not found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games/999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games",
+                "999"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid sort",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games?sort=bogus",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games"
+              ],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "bogus"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"sort error\", () => {",
+                  "  pm.expect(body.error.details).to.have.property(\"sort\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid hub_id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games?hub_id=abc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games"
+              ],
+              "query": [
+                {
+                  "key": "hub_id",
+                  "value": "abc"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"hub_id error\", () => {",
+                  "  pm.expect(body.error.details).to.have.property(\"hub_id\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid complexity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games?complexity=SuperHard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games"
+              ],
+              "query": [
+                {
+                  "key": "complexity",
+                  "value": "SuperHard"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"complexity error\", () => {",
+                  "  pm.expect(body.error.details).to.have.property(\"complexity\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02. Games — життєвий цикл",
+      "description": "Створює тимчасову гру, оновлює та видаляє її. Seed-дані не змінюються.",
+      "item": [
+        {
+          "name": "Create game",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Test Game {{$timestamp}}\",\n  \"description\": \"Створено з Postman\",\n  \"rental_price_per_day\": 99.5,\n  \"play_time_mins\": 45,\n  \"min_players\": 2,\n  \"max_players\": 4,\n  \"complexity\": \"Easy\",\n  \"rating\": 4.2,\n  \"hub_id\": {{seed_hub_id}},\n  \"genre_ids\": [\n    {{seed_genre_id}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"created payload\", () => {",
+                  "  pm.expect(body).to.have.all.keys(\"id\", \"title\", \"status\");",
+                  "  pm.expect(body.id).to.be.a(\"number\");",
+                  "  pm.expect(body.status).to.eql(\"created\");",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"created_game_id\", body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update game",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games/{{created_game_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games",
+                "{{created_game_id}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Test Game Updated {{$timestamp}}\",\n  \"description\": \"Створено з Postman\",\n  \"rental_price_per_day\": 109.5,\n  \"play_time_mins\": 45,\n  \"min_players\": 2,\n  \"max_players\": 4,\n  \"complexity\": \"Easy\",\n  \"rating\": 4.2,\n  \"hub_id\": {{seed_hub_id}},\n  \"genre_ids\": [\n    {{seed_genre_id}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"updated payload\", () => {",
+                  "  pm.expect(body.title).to.include(\"Updated\");",
+                  "  pm.expect(body).to.have.property(\"genres\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete game",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games/{{created_game_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games",
+                "{{created_game_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deleted game returns 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games/{{created_game_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games",
+                "{{created_game_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03. Genres",
+      "description": "",
+      "item": [
+        {
+          "name": "List genres",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/genres",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "genres"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"genres array\", () => {",
+                  "  pm.expect(body).to.be.an(\"array\").that.is.not.empty;",
+                  "  pm.expect(body[0]).to.have.all.keys(\"id\", \"name\", \"description\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create genre",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/genres",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "genres"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Genre {{$timestamp}}\",\n  \"description\": \"Створено з Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"created genre\", () => {",
+                  "  pm.expect(body.id).to.be.a(\"number\");",
+                  "  pm.expect(body.name).to.include(\"Postman Genre\");",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"created_genre_id\", body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update genre",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/genres/{{created_genre_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "genres",
+                "{{created_genre_id}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Genre Updated {{$timestamp}}\",\n  \"description\": \"Оновлено з Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"updated genre\", () => {",
+                  "  pm.expect(body.name).to.include(\"Updated\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Genre detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/genres/{{created_genre_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "genres",
+                "{{created_genre_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"genre fields\", () => {",
+                  "  pm.expect(body).to.have.all.keys(\"id\", \"name\", \"description\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Games by genre",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/genres/{{seed_genre_id}}/games",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "genres",
+                "{{seed_genre_id}}",
+                "games"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"genre games shape\", () => {",
+                  "  pm.expect(body).to.have.all.keys(\"genre_id\", \"genre_name\", \"games\");",
+                  "  pm.expect(body.games).to.be.an(\"array\");",
+                  "  pm.expect(body.games[0]).to.have.all.keys(\"id\", \"title\", \"rating\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete genre with games",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/genres/{{seed_genre_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "genres",
+                "{{seed_genre_id}}"
+              ]
+            },
+            "description": "Очікуваний 409: жанр використовується іграми."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"genre conflict message\", () => {",
+                  "  pm.expect(body.error.message).to.include(\"Неможливо видалити жанр\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete created genre",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/genres/{{created_genre_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "genres",
+                "{{created_genre_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deleted genre returns 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/genres/{{created_genre_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "genres",
+                "{{created_genre_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04. Hubs",
+      "description": "",
+      "item": [
+        {
+          "name": "List hubs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hubs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hubs"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"hubs array\", () => {",
+                  "  pm.expect(body).to.be.an(\"array\").that.is.not.empty;",
+                  "  pm.expect(body[0]).to.have.all.keys(\"id\", \"name\", \"address\", \"phone\", \"description\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create hub",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hubs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hubs"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Hub {{$timestamp}}\",\n  \"address\": \"вул. Тестова, 1\",\n  \"phone\": \"+380000000000\",\n  \"description\": \"Створено з Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"created hub\", () => {",
+                  "  pm.expect(body.id).to.be.a(\"number\");",
+                  "  pm.expect(body.name).to.include(\"Postman Hub\");",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"created_hub_id\", body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update hub",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hubs/{{created_hub_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hubs",
+                "{{created_hub_id}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Hub Updated {{$timestamp}}\",\n  \"address\": \"вул. Оновлена, 2\",\n  \"phone\": \"+380000000001\",\n  \"description\": \"Оновлено з Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"updated hub\", () => {",
+                  "  pm.expect(body.name).to.include(\"Updated\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hub detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hubs/{{created_hub_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hubs",
+                "{{created_hub_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"hub fields\", () => {",
+                  "  pm.expect(body).to.have.all.keys(\"id\", \"name\", \"address\", \"phone\", \"description\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Games by hub",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hubs/{{seed_hub_id}}/games",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hubs",
+                "{{seed_hub_id}}",
+                "games"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"hub games shape\", () => {",
+                  "  pm.expect(body).to.have.all.keys(\"hub_id\", \"hub_name\", \"games\");",
+                  "  pm.expect(body.games).to.be.an(\"array\");",
+                  "  pm.expect(body.games[0]).to.have.all.keys(\"id\", \"title\", \"rental_price_per_day\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete hub with games",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hubs/{{seed_hub_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hubs",
+                "{{seed_hub_id}}"
+              ]
+            },
+            "description": "Очікуваний 409: за хабом закріплені ігри."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict\", () => pm.response.to.have.status(409));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test(\"hub conflict message\", () => {",
+                  "  pm.expect(body.error.message).to.include(\"Неможливо видалити хаб\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete created hub",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hubs/{{created_hub_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hubs",
+                "{{created_hub_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Content\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deleted hub returns 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hubs/{{created_hub_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "hubs",
+                "{{created_hub_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05. CORS",
+      "description": "",
+      "item": [
+        {
+          "name": "CORS GET",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:5500"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"CORS header\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"Access-Control-Allow-Origin\"))",
+                  "    .to.eql(\"http://localhost:5500\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CORS preflight",
+          "request": {
+            "method": "OPTIONS",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:5500"
+              },
+              {
+                "key": "Access-Control-Request-Method",
+                "value": "GET"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/games",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "games"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"CORS preflight headers\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"Access-Control-Allow-Origin\"))",
+                  "    .to.eql(\"http://localhost:5500\");",
+                  "  pm.expect(pm.response.headers.get(\"Access-Control-Allow-Methods\"))",
+                  "    .to.include(\"GET\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

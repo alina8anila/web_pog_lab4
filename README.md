@@ -5,10 +5,77 @@
 
 Застосунок дозволяє користувачам шукати ігри за різними параметрами (кількість гравців, тривалість, складність), читати відгуки, переглядати сторінки жанрів і хабів. Авторизовані користувачі можуть залишати відгуки, додавати ігри до кошика оренди та створювати замовлення на бронювання.
 
+## Як запустити проєкт
+
+### 1. Клонування репозиторію
+
+```bash
+git clone <repo-url>
+cd <папка-проєкту>
+```
+
+### 2. Віртуальне середовище
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate        # macOS / Linux
+# .venv\Scripts\activate         # Windows
+```
+
+### 3. Залежності
+
+```bash
+pip install -r requirements.txt
+```
+
+Для перевірки форматування коду:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+### 4. Міграції та тестові дані
+
+```bash
+python3 manage.py migrate
+```
+
+Міграція `0003_add_data` автоматично додає:
+
+- 2 хаби
+- 3 жанри
+- 5 ігор
+
+### 5. Запуск сервера
+
+```bash
+python3 manage.py runserver
+```
+
+- API: http://127.0.0.1:8000/api/v1/
+- Адмінка: http://127.0.0.1:8000/admin/
+
+Для доступу до адмінки можна створити суперкористувача:
+
+```bash
+python3 manage.py createsuperuser
+```
+
+### 6. Перевірка
+
+```bash
+python3 check_submission.py
+```
+
+### 7. Postman
+
+Імпортуйте колекцію `postman/boardgame_api.postman_collection.json`. Базова адреса сервера вже винесена у змінну `{{base_url}}`.
 
 ## REST API Endpoints
 
 Усі дані передаються у форматі JSON.
+
+> **Статус реалізації:** у поточній версії реалізовано Games, Genres, Hubs і CORS. Reviews, Cart & Orders та Auth заплановані, але ще не реалізовані.
 
 ### 1. Настільні ігри (Games)
 * **`GET /api/v1/games`**
@@ -132,6 +199,26 @@
     ]
     ```
 
+* **`POST /api/v1/genres`**
+  * **Використання:** Створення нового жанру.
+  * **Request method:** `POST`
+  * **Request body:**
+    ```json
+    {
+      "name": "Стратегії",
+      "description": "Ігри на планування та розвиток"
+    }
+    ```
+  * **Response status:** `201 Created`
+  * **Response body:**
+    ```json
+    {
+      "id": 5,
+      "name": "Стратегії",
+      "description": "Ігри на планування та розвиток"
+    }
+    ```
+
 * **`GET /api/v1/genres/{id}/games`**
   * **Використання:** Отримання всіх ігор обраного жанру.
   * **Request method:** `GET`
@@ -163,6 +250,30 @@
     ]
     ```
 
+* **`POST /api/v1/hubs`**
+  * **Використання:** Створення нового хабу.
+  * **Request method:** `POST`
+  * **Request body:**
+    ```json
+    {
+      "name": "Dice & Roll Kyiv",
+      "address": "вул. Хрещатик, 1",
+      "phone": "+380441234567",
+      "description": "Хаб у центрі Києва"
+    }
+    ```
+  * **Response status:** `201 Created`
+  * **Response body:**
+    ```json
+    {
+      "id": 10,
+      "name": "Dice & Roll Kyiv",
+      "address": "вул. Хрещатик, 1",
+      "phone": "+380441234567",
+      "description": "Хаб у центрі Києва"
+    }
+    ```
+
 * **`GET /api/v1/hubs/{id}/games`**
   * **Використання:** Отримання всіх ігор, наявних у конкретному хабі.
   * **Request method:** `GET`
@@ -181,7 +292,10 @@
 
 ---
 
-### 4. Відгуки (Reviews)
+### 4. Відгуки (Reviews) — planned
+
+> Статус: заплановано, у поточній версії не реалізовано.
+
 * **`GET /api/v1/games/{id}/reviews`**
   * **Використання:** Перегляд усіх відгуків для конкретної гри.
   * **Request method:** `GET`
@@ -214,7 +328,10 @@
 
 ---
 
-### 5. Кошик та Замовлення (Cart & Orders)
+### 5. Кошик та Замовлення (Cart & Orders) — planned
+
+> Статус: заплановано, у поточній версії не реалізовано.
+
 * **`GET /api/v1/cart`**
   * **Використання:** Перегляд поточного кошика оренди користувача.
   * **Request method:** `GET`
@@ -290,7 +407,10 @@
 
 ---
 
-### 6. Авторизація та Профіль (Auth & Profile - TBD)
+### 6. Авторизація та Профіль (Auth & Profile) — planned
+
+> Статус: заплановано, у поточній версії не реалізовано.
+
 * **`POST /api/v1/auth/register`**
   * **Використання:** Реєстрація нового користувача.
   * **Request method:** `POST`
