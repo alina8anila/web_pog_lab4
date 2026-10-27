@@ -1,13 +1,13 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from catalog.exceptions import Conflict
-from rest_framework.exceptions import ValidationError
-
 from catalog.models import Game, Genre, Hub
 from catalog.serializers import (
+    GameDetailSerializer,
     GameListSerializer,
     GameWriteSerializer,
     GenreSerializer,
@@ -191,3 +191,24 @@ class GameListCreateView(APIView):
             {"id": game.id, "title": game.title, "status": "created"},
             status=status.HTTP_201_CREATED,
         )
+        
+
+class GameDetailView(APIView):
+    def get(self, request, pk):
+        game = get_object_or_404(
+            Game.objects.select_related("hub").prefetch_related("genres"),
+            pk=pk,
+        )
+        return Response(GameDetailSerializer(game).data)
+
+    def put(self, request, pk):
+        game = get_object_or_404(Game, pk=pk)
+        serializer = GameWriteSerializer(game, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(GameDetailSerializer(game).data)
+
+    def delete(self, request, pk):
+        game = get_object_or_404(Game, pk=pk)
+        game.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

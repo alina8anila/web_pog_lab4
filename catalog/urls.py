@@ -8,6 +8,7 @@ from catalog.views import (
     HubGamesView,
     HubListCreateView,
     GameListCreateView,
+    GameDetailView,
 )
 
 urlpatterns = [
@@ -18,4 +19,5 @@ urlpatterns = [
     path("genres/<int:pk>", GenreDetailView.as_view()),
     path("genres/<int:pk>/games", GenreGamesView.as_view()),
     path("games", GameListCreateView.as_view()),
+    path("games/<int:pk>", GameDetailView.as_view()),
 ]
