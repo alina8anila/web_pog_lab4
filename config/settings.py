@@ -31,8 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    "rest_framework",        
-    "corsheaders",          
+    "rest_framework",
+    "corsheaders",
     "catalog",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -58,7 +58,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500",
 ]
 
-REST_FRAMEWORK = {                                   # глобальні налаштування DRF
+REST_FRAMEWORK = {  # глобальні налаштування DRF
     "EXCEPTION_HANDLER": "catalog.exceptions.custom_exception_handler",
     "COERCE_DECIMAL_TO_STRING": False,
 }

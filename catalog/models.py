@@ -38,10 +38,11 @@ class Game(models.Model):
 
     def __str__(self):
         return self.title
-    
-#`Users`
-#`Reviews`
-#`CartItems
-#`Orders`
-#`OrderItems`
+
+
+# `Users`
+# `Reviews`
+# `CartItems
+# `Orders`
+# `OrderItems`
 # ці пізніше зроблю

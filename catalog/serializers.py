@@ -33,8 +33,14 @@ class GameListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
         fields = [
-            "id", "title", "rental_price_per_day", "rating",
-            "min_players", "max_players", "complexity", "hub",
+            "id",
+            "title",
+            "rental_price_per_day",
+            "rating",
+            "min_players",
+            "max_players",
+            "complexity",
+            "hub",
         ]
 
 
@@ -45,9 +51,17 @@ class GameDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
         fields = [
-            "id", "title", "description", "rental_price_per_day",
-            "play_time_mins", "min_players", "max_players",
-            "complexity", "rating", "hub", "genres",
+            "id",
+            "title",
+            "description",
+            "rental_price_per_day",
+            "play_time_mins",
+            "min_players",
+            "max_players",
+            "complexity",
+            "rating",
+            "hub",
+            "genres",
         ]
 
 
@@ -56,22 +70,33 @@ class GameWriteSerializer(serializers.ModelSerializer):
         source="hub", queryset=Hub.objects.all()
     )
     genre_ids = serializers.PrimaryKeyRelatedField(
-        source="genres", queryset=Genre.objects.all(),
-        many=True, required=False,
+        source="genres",
+        queryset=Genre.objects.all(),
+        many=True,
+        required=False,
     )
 
     class Meta:
         model = Game
         fields = [
-            "title", "description", "rental_price_per_day", "play_time_mins",
-            "min_players", "max_players", "complexity", "rating",
-            "hub_id", "genre_ids",
+            "title",
+            "description",
+            "rental_price_per_day",
+            "play_time_mins",
+            "min_players",
+            "max_players",
+            "complexity",
+            "rating",
+            "hub_id",
+            "genre_ids",
         ]
 
     def validate(self, attrs):
         if attrs["min_players"] > attrs["max_players"]:
             raise serializers.ValidationError(
-                {"max_players": "Максимальна кількість гравців не може бути меншою за мінімальну."}
+                {
+                    "max_players": "Максимальна кількість гравців не може бути меншою за мінімальну."
+                }
             )
         if attrs["rental_price_per_day"] < 0:
             raise serializers.ValidationError(

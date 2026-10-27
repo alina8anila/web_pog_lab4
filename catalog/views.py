@@ -68,8 +68,8 @@ class HubGamesView(APIView):
                 ],
             }
         )
-        
-        
+
+
 class GenreListCreateView(APIView):
     def get(self, request):
         genres = Genre.objects.all().order_by("id")
@@ -120,6 +120,7 @@ class GenreGamesView(APIView):
             }
         )
 
+
 def get_int_param(request, name):
     value = request.query_params.get(name)
     if value in (None, ""):
@@ -129,6 +130,7 @@ def get_int_param(request, name):
     except (TypeError, ValueError):
         raise ValidationError({name: "Має бути цілим числом."})
 
+
 SORT_MAP = {
     "price_asc": "rental_price_per_day",
     "price_desc": "-rental_price_per_day",
@@ -136,7 +138,8 @@ SORT_MAP = {
     "rating_asc": "rating",
     "popularity": "-rating",  # поля popularity немає → fallback
 }
-        
+
+
 class GameListCreateView(APIView):
     def get(self, request):
         games = Game.objects.select_related("hub").prefetch_related("genres")
@@ -191,7 +194,7 @@ class GameListCreateView(APIView):
             {"id": game.id, "title": game.title, "status": "created"},
             status=status.HTTP_201_CREATED,
         )
-        
+
 
 class GameDetailView(APIView):
     def get(self, request, pk):

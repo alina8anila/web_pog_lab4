@@ -1,14 +1,14 @@
 from django.urls import path
 
 from catalog.views import (
+    GameDetailView,
+    GameListCreateView,
     GenreDetailView,
     GenreGamesView,
     GenreListCreateView,
     HubDetailView,
     HubGamesView,
     HubListCreateView,
-    GameListCreateView,
-    GameDetailView,
 )
 
 urlpatterns = [

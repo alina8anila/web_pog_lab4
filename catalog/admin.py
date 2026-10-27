@@ -1,5 +1,7 @@
 from django.contrib import admin
+
 from catalog.models import Game, Genre, Hub
+
 
 @admin.register(Hub)
 class HubAdmin(admin.ModelAdmin):
@@ -16,7 +18,12 @@ class GenreAdmin(admin.ModelAdmin):
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
     list_display = (
-        "id", "title", "hub", "complexity", "rating", "rental_price_per_day",
+        "id",
+        "title",
+        "hub",
+        "complexity",
+        "rating",
+        "rental_price_per_day",
     )
     list_filter = ("complexity", "hub", "genres")
     search_fields = ("title",)
