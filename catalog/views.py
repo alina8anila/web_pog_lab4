@@ -18,6 +18,7 @@ from catalog.serializers import (
 
 class HubListCreateView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request):
         hubs = Hub.objects.all().order_by("id")
         return Response(HubSerializer(hubs, many=True).data)
@@ -31,6 +32,7 @@ class HubListCreateView(APIView):
 
 class HubDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request, pk):
         hub = get_object_or_404(Hub, pk=pk)
         return Response(HubSerializer(hub).data)
@@ -55,6 +57,7 @@ class HubDetailView(APIView):
 
 class HubGamesView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request, pk):
         hub = get_object_or_404(Hub, pk=pk)
         games = hub.games.all().order_by("id")
@@ -76,6 +79,7 @@ class HubGamesView(APIView):
 
 class GenreListCreateView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request):
         genres = Genre.objects.all().order_by("id")
         return Response(GenreSerializer(genres, many=True).data)
@@ -89,6 +93,7 @@ class GenreListCreateView(APIView):
 
 class GenreDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request, pk):
         genre = get_object_or_404(Genre, pk=pk)
         return Response(GenreSerializer(genre).data)
@@ -113,6 +118,7 @@ class GenreDetailView(APIView):
 
 class GenreGamesView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request, pk):
         genre = get_object_or_404(Genre, pk=pk)
         games = genre.games.all().order_by("id")
@@ -149,6 +155,7 @@ SORT_MAP = {
 
 class GameListCreateView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request):
         games = Game.objects.select_related("hub").prefetch_related("genres")
 
@@ -206,6 +213,7 @@ class GameListCreateView(APIView):
 
 class GameDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request, pk):
         game = get_object_or_404(
             Game.objects.select_related("hub").prefetch_related("genres"),

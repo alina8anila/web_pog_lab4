@@ -71,16 +71,12 @@ class RegisterSerializer(serializers.Serializer):
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError(
-                "Користувач з таким username вже існує."
-            )
+            raise serializers.ValidationError("Користувач з таким username вже існує.")
         return value
 
     def validate_email(self, value):
         if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError(
-                "Користувач з таким email вже існує."
-            )
+            raise serializers.ValidationError("Користувач з таким email вже існує.")
         return value
 
     def validate_password(self, value):
@@ -93,9 +89,7 @@ class RegisterSerializer(serializers.Serializer):
                 "Пароль має містити хоча б одну малу літеру."
             )
         if not re.search(r"\d", value):
-            raise serializers.ValidationError(
-                "Пароль має містити хоча б одну цифру."
-            )
+            raise serializers.ValidationError("Пароль має містити хоча б одну цифру.")
         return value
 
     def validate(self, attrs):
