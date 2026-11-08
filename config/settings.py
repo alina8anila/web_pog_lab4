@@ -63,7 +63,7 @@ REST_FRAMEWORK = {  # глобальні налаштування DRF
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
-    "EXCEPTION_HANDLER": "catalog.exceptions.custom_exception_handler",
+     "EXCEPTION_HANDLER": "config.exceptions.custom_exception_handler",
     "COERCE_DECIMAL_TO_STRING": False,
 }
 
