@@ -54,7 +54,6 @@ class RegisterSerializer(serializers.Serializer):
         write_only=True,
         min_length=8,
         max_length=128,
-        trim_whitespace=False,
         error_messages={
             "required": "Пароль обов'язковий.",
             "blank": "Пароль не може бути порожнім.",
@@ -64,7 +63,6 @@ class RegisterSerializer(serializers.Serializer):
     )
     password_confirmation = serializers.CharField(
         write_only=True,
-        trim_whitespace=False,
         error_messages={
             "required": "Підтвердження пароля обов'язкове.",
             "blank": "Підтвердження пароля не може бути порожнім.",
