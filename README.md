@@ -75,7 +75,20 @@ python3 check_submission.py
 
 ### 7. Postman
 
-Імпортуйте колекцію `postman/boardgame_api.postman_collection.json`. Базова адреса сервера вже винесена у змінну `{{base_url}}`.
+Імпортуйте колекцію `postman/boardgame_api.postman_collection.json` (Postman Collection v2.1). Базова адреса сервера винесена у змінну `{{base_url}}` — `http://127.0.0.1:8000/api/v1`.
+
+Колекція містить 6 папок:
+
+| Папка | Призначення |
+|---|---|
+| `00. Auth` | реєстрація, логін, refresh, профіль, перевірка `401` |
+| `01. Games — читання` | публічні `GET`, фільтри, сортування, помилки `400`/`404` |
+| `02. Games — життєвий цикл` | створення, оновлення, видалення гри; `403` для `user` |
+| `03. Genres` | CRUD жанрів і пов'язані ігри |
+| `04. Hubs` | CRUD хабів і пов'язані ігри |
+| `05. CORS` | CORS-заголовки для `GET` і preflight |
+
+Перед першим запуском заповніть `admin_username` і `admin_password` — дані суперюзера вашої локальної бази (у нього `role="admin"`).
 
 ## REST API Endpoints
 
