@@ -46,6 +46,9 @@ python3 manage.py migrate
 - 3 жанри
 - 5 ігор
 
+Міграція `users.0002_create_profiles` створює `Profile` для наявних користувачів.
+Для нових користувачів профіль створюється автоматично під час реєстрації.
+
 ### 5. Запуск сервера
 
 ```bash
@@ -61,6 +64,9 @@ python3 manage.py runserver
 python3 manage.py createsuperuser
 ```
 
+Суперюзер автоматично отримує роль `admin`. Перевірити або змінити роль:
+`/admin/` → **Users → Profiles**.
+
 ### 6. Перевірка
 
 ```bash
@@ -69,13 +75,87 @@ python3 check_submission.py
 
 ### 7. Postman
 
-Імпортуйте колекцію `postman/boardgame_api.postman_collection.json`. Базова адреса сервера вже винесена у змінну `{{base_url}}`.
+Імпортуйте колекцію `postman/boardgame_api.postman_collection.json` (Postman Collection v2.1). Базова адреса сервера винесена у змінну `{{base_url}}` — `http://127.0.0.1:8000/api/v1`.
+
+Колекція містить 6 папок:
+
+| Папка | Призначення |
+|---|---|
+| `00. Auth` | реєстрація, логін, refresh, профіль, перевірка `401` |
+| `01. Games — читання` | публічні `GET`, фільтри, сортування, помилки `400`/`404` |
+| `02. Games — життєвий цикл` | створення, оновлення, видалення гри; `403` для `user` |
+| `03. Genres` | CRUD жанрів і пов'язані ігри |
+| `04. Hubs` | CRUD хабів і пов'язані ігри |
+| `05. CORS` | CORS-заголовки для `GET` і preflight |
+
+Перед першим запуском заповніть `admin_username` і `admin_password` — дані суперюзера вашої локальної бази (у нього `role="admin"`).
 
 ## REST API Endpoints
 
 Усі дані передаються у форматі JSON.
 
-> **Статус реалізації:** у поточній версії реалізовано Games, Genres, Hubs і CORS. Reviews, Cart & Orders та Auth заплановані, але ще не реалізовані.
+> **Статус реалізації:** реалізовано Games, Genres, Hubs, Auth & Profile і CORS.
+> Reviews, Cart & Orders — заплановано.
+
+### Автентифікація та ролі
+
+API використовує JWT. Після логіну клієнт отримує пару токенів:
+
+| Токен | Час життя | Призначення |
+|---|---|---|
+| `access` | 5 хвилин | додається до кожного захищеного запиту |
+| `refresh` | 1 доба | отримання нового `access` без повторного логіну |
+
+Заголовок для захищених запитів:
+
+```http
+Authorization: Bearer <access>
+```
+
+Ролі користувачів:
+
+| Роль | Де зберігається | Права |
+|---|---|---|
+| `user` | `Profile.role` | читати каталог, переглядати власний профіль |
+| `admin` | `Profile.role` | усе, що `user`, + створювати/редагувати/видаляти хаби, жанри, ігри |
+
+`is_staff` (доступ до Django admin) **не** дає прав на запис у каталог — перевіряється саме `Profile.role`.
+
+> Суперюзер автоматично отримує `role="admin"` (сигнал `post_save`).
+> Змінити роль можна в адмінці: **Users → Profiles**.
+
+Правила доступу:
+
+| Endpoint | Метод | Доступ |
+|---|---|---|
+| `/games`, `/genres`, `/hubs`, їхні `{id}` та `/{id}/games` | `GET` | публічно |
+| `/games`, `/genres`, `/hubs` | `POST`, `PUT`, `DELETE` | лише `admin` |
+| `/register`, `/token`, `/token/refresh` | `POST` | публічно |
+| `/users/me` | `GET` | будь-який автентифікований |
+
+Усі помилки мають однаковий формат:
+
+```json
+{
+  "error": {
+    "message": "Невалідні дані.",
+    "details": {
+      "email": ["Введіть коректну email-адресу."]
+    }
+  }
+}
+```
+
+`details` — порожній об'єкт (`{}`), якщо помилка не стосується конкретних полів.
+
+| Код | Коли виникає |
+|---|---|
+| `400` | невалідні дані; у `details` — повідомлення по кожному полю |
+| `401` | немає токена; токен битий або прострочений; невірний логін |
+| `403` | токен валідний, але роль не `admin` |
+| `404` | об'єкта не існує |
+| `405` | метод не підтримується |
+| `409` | хаб або жанр має пов'язані ігри |
 
 ### 1. Настільні ігри (Games)
 * **`GET /api/v1/games`**
@@ -132,7 +212,7 @@ python3 check_submission.py
     ```
 
 * **`POST /api/v1/games`**
-  * **Використання:** Додавання нової гри в каталог (для адміністраторів/хабів).
+  * **Використання:** Додавання нової гри в каталог (лише адміністратор).
   * **Request method:** `POST`
   * **Request body:**
     ```json
@@ -407,39 +487,169 @@ python3 check_submission.py
 
 ---
 
-### 6. Авторизація та Профіль (Auth & Profile) — planned
+### 6. Авторизація та Профіль (Auth & Profile)
 
-> Статус: заплановано, у поточній версії не реалізовано.
+> Реалізовано
 
-* **`POST /api/v1/auth/register`**
-  * **Використання:** Реєстрація нового користувача.
-  * **Request method:** `POST`
-  * **Request body:**
-    ```json
-    {
-      "email": "user@example.com",
-      "password": "strongpassword123",
-      "full_name": "Іван Іванов"
+#### `POST /api/v1/register`
+
+Реєстрація нового користувача. Доступ: публічний.
+
+Request body:
+
+```json
+{
+  "username": "alina",
+  "first_name": "Аліна",
+  "last_name": "Іваненко",
+  "email": "alina@example.com",
+  "password": "StrongPass1",
+  "password_confirmation": "StrongPass1"
+}
+```
+
+Правила валідації:
+
+| Поле | Обов'язкове | Правила |
+|---|---|---|
+| `username` | так | до 150 символів, унікальний |
+| `first_name` | ні | до 150 символів |
+| `last_name` | ні | до 150 символів |
+| `email` | так | коректний email, до 254 символів, унікальний без урахування регістру |
+| `password` | так | 8–128 символів, велика й мала літери, цифра |
+| `password_confirmation` | так | має збігатися з `password` |
+
+Response `201 Created`:
+
+```json
+{
+  "id": 1,
+  "username": "alina",
+  "first_name": "Аліна",
+  "last_name": "Іваненко",
+  "email": "alina@example.com",
+  "role": "user"
+}
+```
+
+Приклад помилки `400 Bad Request`:
+
+```json
+{
+  "error": {
+    "message": "Невалідні дані.",
+    "details": {
+      "username": ["Користувач з таким username вже існує."],
+      "password": ["Пароль має містити хоча б одну велику літеру."]
     }
-    ```
-  * **Response status:** `201 Created`
+  }
+}
+```
 
-* **`POST /api/v1/auth/login`** 
-  * **Використання:** Вхід користувача та отримання токена/сесії.
-  * **Request method:** `POST`
-  * **Request body:**
-    ```json
-    {
-      "email": "user@example.com",
-      "password": "strongpassword123"
-    }
-    ```
-  * **Response status:** `200 OK`
+Пароль зберігається у вигляді хешу. `Profile` із роллю `user` створюється автоматично.
 
-* **`GET /api/v1/users/me`**
-  * **Використання:** Отримання даних профілю поточного користувача.
-  * **Request method:** `GET`
-  * **Response status:** `200 OK`
+#### `POST /api/v1/token`
+
+Логін. Доступ: публічний.
+
+Request body:
+
+```json
+{
+  "username": "alina",
+  "password": "StrongPass1"
+}
+```
+
+Response `200 OK`:
+
+```json
+{
+  "access": "eyJhbGciOi...",
+  "refresh": "eyJhbGciOi..."
+}
+```
+
+Помилка `401 Unauthorized`:
+
+```json
+{
+  "error": {
+    "message": "Невірний username або пароль.",
+    "details": {}
+  }
+}
+```
+
+#### `POST /api/v1/token/refresh`
+
+Отримання нового `access` за `refresh`. Доступ: публічний.
+
+Request body:
+
+```json
+{
+  "refresh": "eyJhbGciOi..."
+}
+```
+
+Response `200 OK`:
+
+```json
+{
+  "access": "eyJhbGciOi..."
+}
+```
+
+Якщо `refresh` прострочений, битий або це `access`-токен:
+
+```json
+{
+  "error": {
+    "message": "Токен недійсний або прострочений. Увійдіть повторно.",
+    "details": {}
+  }
+}
+```
+
+#### `GET /api/v1/users/me`
+
+Дані поточного користувача. Доступ: будь-який автентифікований.
+
+Request headers:
+
+```http
+Authorization: Bearer <access>
+```
+
+Response `200 OK`:
+
+```json
+{
+  "id": 1,
+  "username": "alina",
+  "first_name": "Аліна",
+  "last_name": "Іваненко",
+  "email": "alina@example.com",
+  "role": "admin"
+}
+```
+
+Без токена — `401 Unauthorized`:
+
+```json
+{
+  "error": {
+    "message": "Потрібна автентифікація. Передайте access-токен у заголовку Authorization.",
+    "details": {}
+  }
+}
+```
+
+#### Вихід (logout)
+
+Окремого ендпоінта немає. Клієнт видаляє `access` і `refresh` зі свого сховища
+(`localStorage` / `sessionStorage`). Після цього токени не використовуються.
 
 ---
 
@@ -448,12 +658,17 @@ python3 check_submission.py
 ![Database Schema](./db_schema.png)
 
 ### Опис таблиць та зв'язків:
-1. **`Users`**: `id`, `email`, `password_hash`, `full_name`, `created_at`
+
+1. **`Users`**: `id`, `username`, `password` (хеш), `first_name`, `last_name`, `email`, `is_staff`, `is_superuser`, `is_active`, `date_joined`, `role` (`user` / `admin`)
 2. **`Hubs`**: `id`, `name`, `address`, `phone`, `description`
-3. **`Genres`**: `id`, `name`, `description`
-4. **`Games`**: `id`, `title`, `description`, `rental_price_per_day`, `play_time_mins`, `min_players`, `max_players`, `complexity`, `hub_id` *(FK -> Hubs)*
+3. **`Genres`**: `id`, `name` (unique), `description`
+4. **`Games`**: `id`, `title`, `description`, `rental_price_per_day`, `play_time_mins`, `min_players`, `max_players`, `complexity`, `rating`, `hub_id` *(FK -> Hubs)*
 5. **`GameGenres`**: `game_id` *(FK -> Games)*, `genre_id` *(FK -> Genres)* — *(зв'язок M:N)*
 6. **`Reviews`**: `id`, `user_id` *(FK -> Users)*, `game_id` *(FK -> Games)*, `rating`, `comment`, `created_at`
 7. **`CartItems`**: `id`, `user_id` *(FK -> Users)*, `game_id` *(FK -> Games)*, `rental_days`
 8. **`Orders`**: `id`, `user_id` *(FK -> Users)*, `total_price`, `status`, `created_at`
 9. **`OrderItems`**: `id`, `order_id` *(FK -> Orders)*, `game_id` *(FK -> Games)*, `rental_days`, `price_per_day`
+
+> Фактичні назви таблиць у БД: `Users` → `auth_user` + `users_profile` (роль зберігається окремо), `Hubs` → `catalog_hub`, `Genres` → `catalog_genre`, `Games` → `catalog_game`, `GameGenres` → `catalog_game_genres`.
+> `Reviews`, `CartItems`, `Orders`, `OrderItems` — заплановані, у поточній версії таблиць ще немає.
+> `db_schema.png` ілюструє початковий дизайн; актуальна схема — в міграціях (`catalog/migrations`, `users/migrations`).
