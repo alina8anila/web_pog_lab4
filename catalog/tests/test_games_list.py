@@ -9,6 +9,7 @@
 - отримання деталей існуючої гри;
 - 404 для неіснуючої гри.
 """
+
 import pytest
 
 from catalog.models import Game

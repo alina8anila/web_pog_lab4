@@ -6,6 +6,7 @@
 - неавторизований користувач отримує 401;
 - 404 для неіснуючої гри.
 """
+
 import pytest
 
 from catalog.models import Game

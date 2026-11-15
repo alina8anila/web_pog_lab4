@@ -9,6 +9,7 @@
 - 400, якщо PUT не містить усіх обов'язкових полів;
 - 405, оскільки PATCH не підтримується.
 """
+
 import pytest
 
 pytestmark = pytest.mark.django_db

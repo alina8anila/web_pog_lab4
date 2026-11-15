@@ -10,6 +10,7 @@
 - неіснуючий hub_id;
 - некоректна складність.
 """
+
 import pytest
 
 from catalog.models import Game
