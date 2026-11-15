@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "drf_spectacular",
     "rest_framework",
     "corsheaders",
     "catalog",
@@ -60,11 +61,33 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 REST_FRAMEWORK = {  # глобальні налаштування DRF
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "EXCEPTION_HANDLER": "config.exceptions.custom_exception_handler",
     "COERCE_DECIMAL_TO_STRING": False,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "BoardGame Hub API",
+    "DESCRIPTION": (
+        "API платформи для оренди настільних ігор: каталог ігор, "
+        "жанри, хаби, автентифікація та профіль користувача."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "persistAuthorization": True,
+    },
+    "TAGS": [
+        {"name": "Games", "description": "Каталог настільних ігор"},
+        {"name": "Genres", "description": "Жанри ігор"},
+        {"name": "Hubs", "description": "Ігрові хаби"},
+        {"name": "Auth", "description": "Реєстрація та JWT-автентифікація"},
+    ],
 }
 
 ROOT_URLCONF = "config.urls"
