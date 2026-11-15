@@ -90,6 +90,96 @@ python3 check_submission.py
 
 Перед першим запуском заповніть `admin_username` і `admin_password` — дані суперюзера вашої локальної бази (у нього `role="admin"`).
 
+## Тестування
+
+Проєкт покритий автоматизованими тестами на **pytest** + **pytest-django**. Тестуються ендпоінти ресурсу **Games** (`GET`, `POST`, `PUT`, `DELETE`), права доступу (адміністратор / звичайний користувач / анонім) та валідація вхідних даних.
+
+### Структура тестів
+
+```text
+catalog/tests/
+├── conftest.py               # спільні фікстури
+├── test_games_list.py        # GET list/detail, фільтри, сортування
+├── test_games_create.py      # POST і негативні сценарії
+├── test_games_update.py      # PUT, PATCH (405) і негативні сценарії
+└── test_games_delete.py      # DELETE і негативні сценарії
+```
+
+### Встановлення залежностей
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+`requirements-dev.txt` містить `-r requirements.txt`, тому встановляться і runtime-, і тестові залежності (`pytest`, `pytest-django`, `pytest-cov`).
+
+### Запуск тестів
+
+Усі тести:
+
+```bash
+pytest
+```
+
+Лише тести каталогу:
+
+```bash
+pytest catalog/tests -v
+```
+
+Окремий файл:
+
+```bash
+pytest catalog/tests/test_games_create.py -v
+```
+
+Окремий тест:
+
+```bash
+pytest catalog/tests/test_games_create.py::test_admin_can_create_game -v
+```
+
+Тестові файли названі за маскою `test*.py`, тестові функції — `test_*`.
+
+### Вимірювання покриття
+
+Текстовий звіт у терміналі:
+
+```bash
+pytest --cov=catalog --cov=users --cov-report=term-missing
+```
+
+Поточний результат: **32 тести, 86% покриття**.
+
+```text
+Name                                       Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------
+catalog/admin.py                              16      0   100%
+catalog/apps.py                                3      0   100%
+catalog/exceptions.py                          4      0   100%
+catalog/migrations/0001_initial.py             6      0   100%
+catalog/migrations/0002_game_rating.py         4      0   100%
+catalog/migrations/0003_add_data.py           30      6    80%   142-148
+catalog/models.py                             30      3    90%   11, 19, 40
+catalog/permissions.py                        10      0   100%
+catalog/serializers.py                        43      0   100%
+catalog/urls.py                                3      0   100%
+catalog/views.py                             135     44    67%   23-24, 27-30, 37-38, 41-45, 48-55, 62-64, 84-85, 88-91, 98-99, 102-106, 109-116, 123-125
+users/admin.py                                14      2    86%   15, 19
+users/apps.py                                  5      0   100%
+users/migrations/0001_initial.py               7      0   100%
+users/migrations/0002_create_profiles.py      14      4    71%   10-11, 15-16
+users/models.py                               10      1    90%   18
+users/serializers.py                          41     20    51%   15-16, 73-75, 78-80, 83-93, 96-100, 103-104
+users/signals.py                               8      0   100%
+users/urls.py                                  4      0   100%
+users/views.py                                16      5    69%   13-16, 23
+------------------------------------------------------------------------
+TOTAL                                        593     85    86%
+```
+
+`catalog/views.py` має 67%, оскільки тестами покритий ресурс Games; ендпоінти Hub і Genre залишаються без тестів.
+
 ## REST API Endpoints
 
 Усі дані передаються у форматі JSON.
