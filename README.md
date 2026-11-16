@@ -222,6 +222,49 @@ Query-параметри `GET /api/v1/games`: `search`, `hub_id`, `genre_id`,
 Для захищених методів використовується JWT (схема `jwtAuth`, `Authorization: Bearer <access>`).
 Коди відповідей: `200`, `201`, `204`, а також `400`, `401`, `403`, `404`.
 
+## Логування
+ Логи допомагають відстежити зміни даних, побачити помилки клієнта й знайти причину падіння.
+
+### Налаштування
+
+Конфігурація — `LOGGING` у `config/settings.py`. Одночасно працюють два обробники:
+
+| Handler | Куди пише | Навіщо |
+|---|---|---|
+| `console` | термінал (`runserver`) | побачити подію одразу |
+| `file` | `logs/app.log` | історія після закриття терміналу |
+
+Файл ротується (`RotatingFileHandler`): до **5 МБ**, зберігається **3** резервні копії
+(`app.log.1`–`app.log.3`). Каталог `logs/` створюється автоматично під час старту
+(`LOG_DIR.mkdir`), а сам файл у `.gitignore`, тому в репозиторій не потрапляє.
+
+Формат рядка:
+
+```text
+2026-11-16 20:10:07 INFO    users.views user registered id=24 username='alina'
+```
+
+`{дата} {рівень:<7} {логер} {повідомлення}` — вирівняний рівень дозволяє читати лог очима
+й фільтрувати його через `grep`.
+
+### Рівні
+
+| Рівень | Коли використовується | Приклад |
+|---|---|---|
+| `DEBUG` | перегляд каталогу (часта подія, у проді вимикається) | `games listed search='catan' hub_id=None genre_id=2 min_players=3 complexity=None sort=price_asc count=4` |
+| `INFO` | зміна стану: CRUD каталогу, реєстрація | `game created id=6 title='Catan' user_id=1` |
+| `WARNING` | помилки клієнта (`4xx`) | `GET /api/v1/games/999999 status=404 user_id=None` |
+| `ERROR` | необроблений виняток (`5xx`), з трейсбеком | `unhandled exception POST /api/v1/games user_id=1` |
+
+### Що саме логується
+
+| Місце | Рівень | Події |
+|---|---|---|
+| `catalog/views.py` | `DEBUG` | `games listed` — пошук, фільтри, сортування, кількість результатів |
+| `catalog/views.py` | `INFO` | `game` / `hub` / `genre` `created`, `updated`, `deleted` з `id` і `user_id` |
+| `users/views.py` | `INFO` | `user registered` |
+| `config/exceptions.py` | `WARNING` | будь-яка `4xx`: метод, шлях, статус, `user_id`; для `400` — назви полів |
+| `config/exceptions.py` | `ERROR` | `500` з трейсбеком |
 
 ## REST API Endpoints
 
