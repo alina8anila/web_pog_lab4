@@ -70,6 +70,7 @@ REST_FRAMEWORK = {  # глобальні налаштування DRF
 }
 
 SPECTACULAR_SETTINGS = {
+    "DISABLE_ERRORS_AND_WARNINGS": True,
     "TITLE": "BoardGame Hub API",
     "DESCRIPTION": (
         "API платформи для оренди настільних ігор: каталог ігор, "

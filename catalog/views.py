@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,6 +14,51 @@ from catalog.serializers import (
     GameWriteSerializer,
     GenreSerializer,
     HubSerializer,
+)
+
+GAME_QUERY_PARAMS = [
+    OpenApiParameter("search", str, description="Пошук за назвою гри."),
+    OpenApiParameter("hub_id", int, description="Фільтр за ID хабу."),
+    OpenApiParameter("genre_id", int, description="Фільтр за ID жанру."),
+    OpenApiParameter(
+        "min_players", int, description="Кількість гравців, яку підтримує гра."
+    ),
+    OpenApiParameter(
+        "complexity",
+        str,
+        enum=["Easy", "Medium", "Hard"],
+        description="Складність гри.",
+    ),
+    OpenApiParameter(
+        "sort",
+        str,
+        enum=["price_asc", "price_desc", "rating_desc", "rating_asc", "popularity"],
+        description="Сортування результатів.",
+    ),
+]
+
+GameListResponse = inline_serializer(
+    "GameListResponse",
+    {"count": serializers.IntegerField(), "results": GameListSerializer(many=True)},
+)
+
+GameCreateResponse = inline_serializer(
+    "GameCreateResponse",
+    {
+        "id": serializers.IntegerField(),
+        "title": serializers.CharField(),
+        "status": serializers.CharField(),
+    },
+)
+
+ErrorResponse = inline_serializer(
+    "ErrorResponse",
+    {
+        "error": inline_serializer(
+            "ErrorBody",
+            {"message": serializers.CharField(), "details": serializers.JSONField()},
+        )
+    },
 )
 
 
