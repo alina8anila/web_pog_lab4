@@ -1,11 +1,28 @@
+import logging
+
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.views import exception_handler
 from rest_framework_simplejwt.exceptions import InvalidToken
 
+logger = logging.getLogger("config.exceptions")
+
 
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
+
+    request = context.get("request")
+    method = getattr(request, "method", "-")
+    path = getattr(request, "path", "-")
+    user_id = getattr(getattr(request, "user", None), "id", None)
+
     if response is None:
+        logger.error(
+            "unhandled exception %s %s user_id=%s",
+            method,
+            path,
+            user_id,
+            exc_info=exc,
+        )
         return None
 
     status_code = response.status_code
@@ -39,4 +56,22 @@ def custom_exception_handler(exc, context):
             "details": details,
         }
     }
+    if status_code == 400:
+        fields = sorted(details) if isinstance(details, dict) else ["non_field_errors"]
+        logger.warning(
+            "%s %s status=400 fields=%s user_id=%s",
+            method,
+            path,
+            fields,
+            user_id,
+        )
+    else:
+        logger.warning(
+            "%s %s status=%s user_id=%s",
+            method,
+            path,
+            status_code,
+            user_id,
+        )
+
     return response
