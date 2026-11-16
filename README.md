@@ -180,6 +180,49 @@ TOTAL                                        593     85    86%
 
 `catalog/views.py` має 67%, оскільки тестами покритий ресурс Games; ендпоінти Hub і Genre залишаються без тестів.
 
+## Документація API
+
+API документовано за допомогою OpenAPI 3. Схема генерується автоматично з DRF-в'ю
+та серіалайзерів бібліотекою `drf-spectacular`.
+
+### Доступ до документації
+
+Після запуску сервера (`python3 manage.py runserver`):
+
+| Що | Посилання |
+|---|---|
+| Swagger UI | [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/) |
+| OpenAPI-схема (YAML) | [http://127.0.0.1:8000/api/schema/](http://127.0.0.1:8000/api/schema/) |
+
+### Генерація схеми у файл
+
+```bash
+python3 manage.py spectacular --file openapi-schema.yml --validate
+```
+
+Команда створює файл `openapi-schema.yml` у корені проєкту, а `--validate`
+перевіряє схему на відповідність специфікації OpenAPI 3.
+
+### Задокументований ресурс
+
+Повністю задокументовано ресурс **Games**:
+
+| Метод | Endpoint | Опис | Автентифікація |
+|---|---|---|---|
+| GET | `/api/v1/games` | список ігор із пошуком, фільтрами та сортуванням | не потрібна |
+| POST | `/api/v1/games` | створення гри | JWT, лише admin |
+| GET | `/api/v1/games/{id}` | деталі гри | не потрібна |
+| PUT | `/api/v1/games/{id}` | повне оновлення гри | JWT, лише admin |
+| DELETE | `/api/v1/games/{id}` | видалення гри | JWT, лише admin |
+
+Query-параметри `GET /api/v1/games`: `search`, `hub_id`, `genre_id`,
+`min_players`, `complexity` (`Easy`, `Medium`, `Hard`), `sort`
+(`price_asc`, `price_desc`, `rating_desc`, `rating_asc`, `popularity`).
+
+Для захищених методів використовується JWT (схема `jwtAuth`, `Authorization: Bearer <access>`).
+Коди відповідей: `200`, `201`, `204`, а також `400`, `401`, `403`, `404`.
+
+
 ## REST API Endpoints
 
 Усі дані передаються у форматі JSON.
