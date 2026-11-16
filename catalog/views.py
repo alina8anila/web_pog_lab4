@@ -202,6 +202,14 @@ SORT_MAP = {
 class GameListCreateView(APIView):
     permission_classes = [IsAdminOrReadOnly]
 
+    @extend_schema(
+        tags=["Games"],
+        summary="Список ігор",
+        description="Пошук, фільтрація та сортування. Доступний без токена.",
+        parameters=GAME_QUERY_PARAMS,
+        responses={200: GameListResponse, 400: ErrorResponse},
+        auth=[],
+    )
     def get(self, request):
         games = Game.objects.select_related("hub").prefetch_related("genres")
 
@@ -247,6 +255,19 @@ class GameListCreateView(APIView):
             }
         )
 
+    @extend_schema(
+        tags=["Games"],
+        summary="Створити гру",
+        description="Доступно лише адміністраторам (role='admin').",
+        request=GameWriteSerializer,
+        responses={
+            201: GameCreateResponse,
+            400: ErrorResponse,
+            401: ErrorResponse,
+            403: ErrorResponse,
+        },
+        auth=[{"jwtAuth": []}],
+    )
     def post(self, request):
         serializer = GameWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -260,6 +281,12 @@ class GameListCreateView(APIView):
 class GameDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
 
+    @extend_schema(
+        tags=["Games"],
+        summary="Деталі гри",
+        responses={200: GameDetailSerializer, 404: ErrorResponse},
+        auth=[],
+    )
     def get(self, request, pk):
         game = get_object_or_404(
             Game.objects.select_related("hub").prefetch_related("genres"),
@@ -267,6 +294,20 @@ class GameDetailView(APIView):
         )
         return Response(GameDetailSerializer(game).data)
 
+    @extend_schema(
+        tags=["Games"],
+        summary="Оновити гру",
+        description="Повне оновлення. Доступно лише адміністраторам (role='admin').",
+        request=GameWriteSerializer,
+        responses={
+            200: GameDetailSerializer,
+            400: ErrorResponse,
+            401: ErrorResponse,
+            403: ErrorResponse,
+            404: ErrorResponse,
+        },
+        auth=[{"jwtAuth": []}],
+    )
     def put(self, request, pk):
         game = get_object_or_404(Game, pk=pk)
         serializer = GameWriteSerializer(game, data=request.data)
@@ -274,6 +315,18 @@ class GameDetailView(APIView):
         serializer.save()
         return Response(GameDetailSerializer(game).data)
 
+    @extend_schema(
+        tags=["Games"],
+        summary="Видалити гру",
+        description="Доступно лише адміністраторам (role='admin').",
+        responses={
+            204: None,
+            401: ErrorResponse,
+            403: ErrorResponse,
+            404: ErrorResponse,
+        },
+        auth=[{"jwtAuth": []}],
+    )
     def delete(self, request, pk):
         game = get_object_or_404(Game, pk=pk)
         game.delete()
