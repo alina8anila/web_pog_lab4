@@ -34,7 +34,29 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
-### 4. Міграції та тестові дані
+### 4. Змінні середовища (.env)
+
+Секрети й налаштування середовища зберігаються у файлі `.env`, який у git не потрапляє. Створіть його з шаблону та згенеруйте секретний ключ:
+
+```bash
+cp .env.example .env
+python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+Отриманий ключ вставте у `DJANGO_SECRET_KEY` у `.env`.
+
+| Змінна | Приклад | Призначення |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | `django-insecure-...` | підпис сесій і JWT |
+| `DJANGO_DEBUG` | `True` | режим налагодження (у проді — `False`) |
+| `DJANGO_ALLOWED_HOSTS` | `127.0.0.1,localhost` | дозволені хости (через кому) |
+| `DJANGO_CORS_ALLOWED_ORIGINS` | `http://localhost:5500` | дозволені джерела фронтенду |
+| `DJANGO_LOG_LEVEL` | `DEBUG` | рівень логування (`DEBUG`, `INFO`, `WARNING`) |
+| `DB_ENGINE` | `django.db.backends.sqlite3` | бекенд бази даних |
+| `DB_NAME` | *(порожньо)* | шлях до файлу БД; порожньо — `db.sqlite3` у корені |
+| `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | *(порожньо)* | підключення до PostgreSQL |
+
+### 5. Міграції та тестові дані
 
 ```bash
 python3 manage.py migrate
@@ -49,7 +71,7 @@ python3 manage.py migrate
 Міграція `users.0002_create_profiles` створює `Profile` для наявних користувачів.
 Для нових користувачів профіль створюється автоматично під час реєстрації.
 
-### 5. Запуск сервера
+### 6. Запуск сервера
 
 ```bash
 python3 manage.py runserver
@@ -67,13 +89,13 @@ python3 manage.py createsuperuser
 Суперюзер автоматично отримує роль `admin`. Перевірити або змінити роль:
 `/admin/` → **Users → Profiles**.
 
-### 6. Перевірка
+### 7. Перевірка
 
 ```bash
 python3 check_submission.py
 ```
 
-### 7. Postman
+### 8. Postman
 
 Імпортуйте колекцію `postman/boardgame_api.postman_collection.json` (Postman Collection v2.1). Базова адреса сервера винесена у змінну `{{base_url}}` — `http://127.0.0.1:8000/api/v1`.
 
