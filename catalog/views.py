@@ -1,5 +1,8 @@
+import logging
+
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,6 +18,53 @@ from catalog.serializers import (
     HubSerializer,
 )
 
+logger = logging.getLogger("catalog.views")
+
+GAME_QUERY_PARAMS = [
+    OpenApiParameter("search", str, description="Пошук за назвою гри."),
+    OpenApiParameter("hub_id", int, description="Фільтр за ID хабу."),
+    OpenApiParameter("genre_id", int, description="Фільтр за ID жанру."),
+    OpenApiParameter(
+        "min_players", int, description="Кількість гравців, яку підтримує гра."
+    ),
+    OpenApiParameter(
+        "complexity",
+        str,
+        enum=["Easy", "Medium", "Hard"],
+        description="Складність гри.",
+    ),
+    OpenApiParameter(
+        "sort",
+        str,
+        enum=["price_asc", "price_desc", "rating_desc", "rating_asc", "popularity"],
+        description="Сортування результатів.",
+    ),
+]
+
+GameListResponse = inline_serializer(
+    "GameListResponse",
+    {"count": serializers.IntegerField(), "results": GameListSerializer(many=True)},
+)
+
+GameCreateResponse = inline_serializer(
+    "GameCreateResponse",
+    {
+        "id": serializers.IntegerField(),
+        "title": serializers.CharField(),
+        "status": serializers.CharField(),
+    },
+)
+
+ErrorResponse = inline_serializer(
+    "ErrorResponse",
+    {
+        "error": inline_serializer(
+            "ErrorBody",
+            {"message": serializers.CharField(), "details": serializers.JSONField()},
+        )
+    },
+)
+
 
 class HubListCreateView(APIView):
     permission_classes = [IsAdminOrReadOnly]
@@ -27,6 +77,12 @@ class HubListCreateView(APIView):
         serializer = HubSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         hub = serializer.save()
+        logger.info(
+            "hub created id=%s name=%r user_id=%s",
+            hub.id,
+            hub.name,
+            request.user.id,
+        )
         return Response(HubSerializer(hub).data, status=status.HTTP_201_CREATED)
 
 
@@ -42,6 +98,7 @@ class HubDetailView(APIView):
         serializer = HubSerializer(hub, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        logger.info("hub updated id=%s user_id=%s", hub.id, request.user.id)
         return Response(serializer.data)
 
     def delete(self, request, pk):
@@ -51,6 +108,12 @@ class HubDetailView(APIView):
             raise Conflict(
                 f"Неможливо видалити хаб, оскільки за ним закріплено {games_count} ігор."
             )
+        logger.info(
+            "hub deleted id=%s name=%r user_id=%s",
+            hub.id,
+            hub.name,
+            request.user.id,
+        )
         hub.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -88,6 +151,12 @@ class GenreListCreateView(APIView):
         serializer = GenreSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         genre = serializer.save()
+        logger.info(
+            "genre created id=%s name=%r user_id=%s",
+            genre.id,
+            genre.name,
+            request.user.id,
+        )
         return Response(GenreSerializer(genre).data, status=status.HTTP_201_CREATED)
 
 
@@ -103,6 +172,7 @@ class GenreDetailView(APIView):
         serializer = GenreSerializer(genre, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        logger.info("genre updated id=%s user_id=%s", genre.id, request.user.id)
         return Response(serializer.data)
 
     def delete(self, request, pk):
@@ -112,6 +182,12 @@ class GenreDetailView(APIView):
             raise Conflict(
                 f"Неможливо видалити жанр, оскільки за ним закріплено {games_count} ігор."
             )
+        logger.info(
+            "genre deleted id=%s name=%r user_id=%s",
+            genre.id,
+            genre.name,
+            request.user.id,
+        )
         genre.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -156,6 +232,14 @@ SORT_MAP = {
 class GameListCreateView(APIView):
     permission_classes = [IsAdminOrReadOnly]
 
+    @extend_schema(
+        tags=["Games"],
+        summary="Список ігор",
+        description="Пошук, фільтрація та сортування. Доступний без токена.",
+        parameters=GAME_QUERY_PARAMS,
+        responses={200: GameListResponse, 400: ErrorResponse},
+        auth=[],
+    )
     def get(self, request):
         games = Game.objects.select_related("hub").prefetch_related("genres")
 
@@ -194,17 +278,48 @@ class GameListCreateView(APIView):
 
         games = games.distinct()
 
+        count = games.count()
+        logger.debug(
+            "games listed search=%r hub_id=%s genre_id=%s min_players=%s "
+            "complexity=%s sort=%s count=%s",
+            search,
+            hub_id,
+            genre_id,
+            min_players,
+            complexity,
+            sort,
+            count,
+        )
         return Response(
             {
-                "count": games.count(),
+                "count": count,
                 "results": GameListSerializer(games, many=True).data,
             }
         )
 
+    @extend_schema(
+        tags=["Games"],
+        summary="Створити гру",
+        description="Доступно лише адміністраторам (role='admin').",
+        request=GameWriteSerializer,
+        responses={
+            201: GameCreateResponse,
+            400: ErrorResponse,
+            401: ErrorResponse,
+            403: ErrorResponse,
+        },
+        auth=[{"jwtAuth": []}],
+    )
     def post(self, request):
         serializer = GameWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         game = serializer.save()
+        logger.info(
+            "game created id=%s title=%r user_id=%s",
+            game.id,
+            game.title,
+            request.user.id,
+        )
         return Response(
             {"id": game.id, "title": game.title, "status": "created"},
             status=status.HTTP_201_CREATED,
@@ -214,6 +329,12 @@ class GameListCreateView(APIView):
 class GameDetailView(APIView):
     permission_classes = [IsAdminOrReadOnly]
 
+    @extend_schema(
+        tags=["Games"],
+        summary="Деталі гри",
+        responses={200: GameDetailSerializer, 404: ErrorResponse},
+        auth=[],
+    )
     def get(self, request, pk):
         game = get_object_or_404(
             Game.objects.select_related("hub").prefetch_related("genres"),
@@ -221,14 +342,51 @@ class GameDetailView(APIView):
         )
         return Response(GameDetailSerializer(game).data)
 
+    @extend_schema(
+        tags=["Games"],
+        summary="Оновити гру",
+        description="Повне оновлення. Доступно лише адміністраторам (role='admin').",
+        request=GameWriteSerializer,
+        responses={
+            200: GameDetailSerializer,
+            400: ErrorResponse,
+            401: ErrorResponse,
+            403: ErrorResponse,
+            404: ErrorResponse,
+        },
+        auth=[{"jwtAuth": []}],
+    )
     def put(self, request, pk):
         game = get_object_or_404(Game, pk=pk)
         serializer = GameWriteSerializer(game, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        logger.info(
+            "game updated id=%s user_id=%s",
+            game.id,
+            request.user.id,
+        )
         return Response(GameDetailSerializer(game).data)
 
+    @extend_schema(
+        tags=["Games"],
+        summary="Видалити гру",
+        description="Доступно лише адміністраторам (role='admin').",
+        responses={
+            204: None,
+            401: ErrorResponse,
+            403: ErrorResponse,
+            404: ErrorResponse,
+        },
+        auth=[{"jwtAuth": []}],
+    )
     def delete(self, request, pk):
         game = get_object_or_404(Game, pk=pk)
+        logger.info(
+            "game deleted id=%s title=%r user_id=%s",
+            game.id,
+            game.title,
+            request.user.id,
+        )
         game.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

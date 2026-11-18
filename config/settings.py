@@ -10,27 +10,44 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
+
+
+def env_bool(name, default=False):
+    value = os.environ.get(name, str(default))
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name, default=""):
+    items = os.environ.get(name, default).split(",")
+    return [item.strip() for item in items if item.strip()]
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-csz#0g_+u88cb1nzqg9v5c@7!6jmj+(d3b(%12ha1a7vx2!otp"
+# Справжній ключ задається у .env (див. .env.example); тут лише заглушка.
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-dev-only")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DJANGO_DEBUG", True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    "drf_spectacular",
     "rest_framework",
     "corsheaders",
     "catalog",
@@ -54,17 +71,102 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5500",
-    "http://127.0.0.1:5500",
-]
+CORS_ALLOWED_ORIGINS = env_list(
+    "DJANGO_CORS_ALLOWED_ORIGINS",
+    "http://localhost:5500,http://127.0.0.1:5500",
+)
 
 REST_FRAMEWORK = {  # глобальні налаштування DRF
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "EXCEPTION_HANDLER": "config.exceptions.custom_exception_handler",
     "COERCE_DECIMAL_TO_STRING": False,
+}
+
+SPECTACULAR_SETTINGS = {
+    "DISABLE_ERRORS_AND_WARNINGS": True,
+    "TITLE": "BoardGame Hub API",
+    "DESCRIPTION": (
+        "API платформи для оренди настільних ігор: каталог ігор, "
+        "жанри, хаби, автентифікація та профіль користувача."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "persistAuthorization": True,
+    },
+    "TAGS": [
+        {"name": "Games", "description": "Каталог настільних ігор"},
+        {"name": "Genres", "description": "Жанри ігор"},
+        {"name": "Hubs", "description": "Ігрові хаби"},
+        {"name": "Auth", "description": "Реєстрація та JWT-автентифікація"},
+    ],
+}
+
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+LOG_LEVEL = os.environ.get("DJANGO_LOG_LEVEL", "DEBUG" if DEBUG else "INFO")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname:<7} {name} {message}",
+            "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_DIR / "app.log",
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 3,
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console", "file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "catalog": {
+            "handlers": ["console", "file"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "users": {
+            "handlers": ["console", "file"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "config": {
+            "handlers": ["console", "file"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+    "root": {"handlers": ["console"], "level": "WARNING"},
 }
 
 ROOT_URLCONF = "config.urls"
@@ -92,8 +194,12 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": os.environ.get("DB_ENGINE", "django.db.backends.sqlite3"),
+        "NAME": os.environ.get("DB_NAME") or str(BASE_DIR / "db.sqlite3"),
+        "USER": os.environ.get("DB_USER", ""),
+        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+        "HOST": os.environ.get("DB_HOST", ""),
+        "PORT": os.environ.get("DB_PORT", ""),
     }
 }
 

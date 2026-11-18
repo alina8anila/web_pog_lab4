@@ -34,7 +34,29 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
-### 4. Міграції та тестові дані
+### 4. Змінні середовища (.env)
+
+Секрети й налаштування середовища зберігаються у файлі `.env`, який у git не потрапляє. Створіть його з шаблону та згенеруйте секретний ключ:
+
+```bash
+cp .env.example .env
+python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+Отриманий ключ вставте у `DJANGO_SECRET_KEY` у `.env`.
+
+| Змінна | Приклад | Призначення |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | `django-insecure-...` | підпис сесій і JWT |
+| `DJANGO_DEBUG` | `True` | режим налагодження (у проді — `False`) |
+| `DJANGO_ALLOWED_HOSTS` | `127.0.0.1,localhost` | дозволені хости (через кому) |
+| `DJANGO_CORS_ALLOWED_ORIGINS` | `http://localhost:5500` | дозволені джерела фронтенду |
+| `DJANGO_LOG_LEVEL` | `DEBUG` | рівень логування (`DEBUG`, `INFO`, `WARNING`) |
+| `DB_ENGINE` | `django.db.backends.sqlite3` | бекенд бази даних |
+| `DB_NAME` | *(порожньо)* | шлях до файлу БД; порожньо — `db.sqlite3` у корені |
+| `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | *(порожньо)* | підключення до PostgreSQL |
+
+### 5. Міграції та тестові дані
 
 ```bash
 python3 manage.py migrate
@@ -49,7 +71,7 @@ python3 manage.py migrate
 Міграція `users.0002_create_profiles` створює `Profile` для наявних користувачів.
 Для нових користувачів профіль створюється автоматично під час реєстрації.
 
-### 5. Запуск сервера
+### 6. Запуск сервера
 
 ```bash
 python3 manage.py runserver
@@ -67,13 +89,13 @@ python3 manage.py createsuperuser
 Суперюзер автоматично отримує роль `admin`. Перевірити або змінити роль:
 `/admin/` → **Users → Profiles**.
 
-### 6. Перевірка
+### 7. Перевірка
 
 ```bash
 python3 check_submission.py
 ```
 
-### 7. Postman
+### 8. Postman
 
 Імпортуйте колекцію `postman/boardgame_api.postman_collection.json` (Postman Collection v2.1). Базова адреса сервера винесена у змінну `{{base_url}}` — `http://127.0.0.1:8000/api/v1`.
 
@@ -89,6 +111,182 @@ python3 check_submission.py
 | `05. CORS` | CORS-заголовки для `GET` і preflight |
 
 Перед першим запуском заповніть `admin_username` і `admin_password` — дані суперюзера вашої локальної бази (у нього `role="admin"`).
+
+## Тестування
+
+Проєкт покритий автоматизованими тестами на **pytest** + **pytest-django**. Тестуються ендпоінти ресурсу **Games** (`GET`, `POST`, `PUT`, `DELETE`), права доступу (адміністратор / звичайний користувач / анонім) та валідація вхідних даних.
+
+### Структура тестів
+
+```text
+catalog/tests/
+├── conftest.py               # спільні фікстури
+├── test_games_list.py        # GET list/detail, фільтри, сортування
+├── test_games_create.py      # POST і негативні сценарії
+├── test_games_update.py      # PUT, PATCH (405) і негативні сценарії
+└── test_games_delete.py      # DELETE і негативні сценарії
+```
+
+### Встановлення залежностей
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+`requirements-dev.txt` містить `-r requirements.txt`, тому встановляться і runtime-, і тестові залежності (`pytest`, `pytest-django`, `pytest-cov`).
+
+### Запуск тестів
+
+Усі тести:
+
+```bash
+pytest
+```
+
+Лише тести каталогу:
+
+```bash
+pytest catalog/tests -v
+```
+
+Окремий файл:
+
+```bash
+pytest catalog/tests/test_games_create.py -v
+```
+
+Окремий тест:
+
+```bash
+pytest catalog/tests/test_games_create.py::test_admin_can_create_game -v
+```
+
+Тестові файли названі за маскою `test*.py`, тестові функції — `test_*`.
+
+### Вимірювання покриття
+
+Текстовий звіт у терміналі:
+
+```bash
+pytest --cov=catalog --cov=users --cov-report=term-missing
+```
+
+Поточний результат: **32 тести, 86% покриття**.
+
+```text
+Name                                       Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------
+catalog/admin.py                              16      0   100%
+catalog/apps.py                                3      0   100%
+catalog/exceptions.py                          4      0   100%
+catalog/migrations/0001_initial.py             6      0   100%
+catalog/migrations/0002_game_rating.py         4      0   100%
+catalog/migrations/0003_add_data.py           30      6    80%   142-148
+catalog/models.py                             30      3    90%   11, 19, 40
+catalog/permissions.py                        10      0   100%
+catalog/serializers.py                        43      0   100%
+catalog/urls.py                                3      0   100%
+catalog/views.py                             135     44    67%   23-24, 27-30, 37-38, 41-45, 48-55, 62-64, 84-85, 88-91, 98-99, 102-106, 109-116, 123-125
+users/admin.py                                14      2    86%   15, 19
+users/apps.py                                  5      0   100%
+users/migrations/0001_initial.py               7      0   100%
+users/migrations/0002_create_profiles.py      14      4    71%   10-11, 15-16
+users/models.py                               10      1    90%   18
+users/serializers.py                          41     20    51%   15-16, 73-75, 78-80, 83-93, 96-100, 103-104
+users/signals.py                               8      0   100%
+users/urls.py                                  4      0   100%
+users/views.py                                16      5    69%   13-16, 23
+------------------------------------------------------------------------
+TOTAL                                        593     85    86%
+```
+
+`catalog/views.py` має 67%, оскільки тестами покритий ресурс Games; ендпоінти Hub і Genre залишаються без тестів.
+
+## Документація API
+
+API документовано за допомогою OpenAPI 3. Схема генерується автоматично з DRF-в'ю
+та серіалайзерів бібліотекою `drf-spectacular`.
+
+### Доступ до документації
+
+Після запуску сервера (`python3 manage.py runserver`):
+
+| Що | Посилання |
+|---|---|
+| Swagger UI | [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/) |
+| OpenAPI-схема (YAML) | [http://127.0.0.1:8000/api/schema/](http://127.0.0.1:8000/api/schema/) |
+
+### Генерація схеми у файл
+
+```bash
+python3 manage.py spectacular --file openapi-schema.yml --validate
+```
+
+Команда створює файл `openapi-schema.yml` у корені проєкту, а `--validate`
+перевіряє схему на відповідність специфікації OpenAPI 3.
+
+### Задокументований ресурс
+
+Повністю задокументовано ресурс **Games**:
+
+| Метод | Endpoint | Опис | Автентифікація |
+|---|---|---|---|
+| GET | `/api/v1/games` | список ігор із пошуком, фільтрами та сортуванням | не потрібна |
+| POST | `/api/v1/games` | створення гри | JWT, лише admin |
+| GET | `/api/v1/games/{id}` | деталі гри | не потрібна |
+| PUT | `/api/v1/games/{id}` | повне оновлення гри | JWT, лише admin |
+| DELETE | `/api/v1/games/{id}` | видалення гри | JWT, лише admin |
+
+Query-параметри `GET /api/v1/games`: `search`, `hub_id`, `genre_id`,
+`min_players`, `complexity` (`Easy`, `Medium`, `Hard`), `sort`
+(`price_asc`, `price_desc`, `rating_desc`, `rating_asc`, `popularity`).
+
+Для захищених методів використовується JWT (схема `jwtAuth`, `Authorization: Bearer <access>`).
+Коди відповідей: `200`, `201`, `204`, а також `400`, `401`, `403`, `404`.
+
+## Логування
+ Логи допомагають відстежити зміни даних, побачити помилки клієнта й знайти причину падіння.
+
+### Налаштування
+
+Конфігурація — `LOGGING` у `config/settings.py`. Одночасно працюють два обробники:
+
+| Handler | Куди пише | Навіщо |
+|---|---|---|
+| `console` | термінал (`runserver`) | побачити подію одразу |
+| `file` | `logs/app.log` | історія після закриття терміналу |
+
+Файл ротується (`RotatingFileHandler`): до **5 МБ**, зберігається **3** резервні копії
+(`app.log.1`–`app.log.3`). Каталог `logs/` створюється автоматично під час старту
+(`LOG_DIR.mkdir`), а сам файл у `.gitignore`, тому в репозиторій не потрапляє.
+
+Формат рядка:
+
+```text
+2026-11-16 20:10:07 INFO    users.views user registered id=24 username='alina'
+```
+
+`{дата} {рівень:<7} {логер} {повідомлення}` — вирівняний рівень дозволяє читати лог очима
+й фільтрувати його через `grep`.
+
+### Рівні
+
+| Рівень | Коли використовується | Приклад |
+|---|---|---|
+| `DEBUG` | перегляд каталогу (часта подія, у проді вимикається) | `games listed search='catan' hub_id=None genre_id=2 min_players=3 complexity=None sort=price_asc count=4` |
+| `INFO` | зміна стану: CRUD каталогу, реєстрація | `game created id=6 title='Catan' user_id=1` |
+| `WARNING` | помилки клієнта (`4xx`) | `GET /api/v1/games/999999 status=404 user_id=None` |
+| `ERROR` | необроблений виняток (`5xx`), з трейсбеком | `unhandled exception POST /api/v1/games user_id=1` |
+
+### Що саме логується
+
+| Місце | Рівень | Події |
+|---|---|---|
+| `catalog/views.py` | `DEBUG` | `games listed` — пошук, фільтри, сортування, кількість результатів |
+| `catalog/views.py` | `INFO` | `game` / `hub` / `genre` `created`, `updated`, `deleted` з `id` і `user_id` |
+| `users/views.py` | `INFO` | `user registered` |
+| `config/exceptions.py` | `WARNING` | будь-яка `4xx`: метод, шлях, статус, `user_id`; для `400` — назви полів |
+| `config/exceptions.py` | `ERROR` | `500` з трейсбеком |
 
 ## REST API Endpoints
 
